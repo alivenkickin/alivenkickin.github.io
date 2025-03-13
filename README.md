@@ -1,1 +1,1 @@
-#Just now I coded my first site by alivekickin
+# Just selling some golf ball 2$ Each
