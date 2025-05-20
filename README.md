@@ -1,1 +1,1 @@
-# Just selling some golf ball 2$ Each
+# Just selling some golf balls 25 cents each Each
