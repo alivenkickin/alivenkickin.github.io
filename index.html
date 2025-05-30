@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Loan Amortization Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      color: #444;
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    input[type="number"] {
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #004999;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: right;
+    }
+    th {
+      background-color: #e0e0e0;
+    }
+    .result, .comparison {
+      background: #fff;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Loan Amortization Calculator</h1>
+  <p>Enter your loan details below:</p>
+  <form id="loanForm">
+    <label>
+      Loan Amount ($):
+      <input type="number" id="loanAmount" min="0" step="any" required>
+    </label>
+    <label>
+      Term (Years):
+      <input type="number" id="loanTerm" min="1" step="any" required>
+    </label>
+    <label>
+      Annual Interest Rate (%):
+      <input type="number" id="interestRate" min="0" step="any" required>
+    </label>
+    <button type="submit">Calculate Amortization</button>
+  </form>
+
+  <!-- Result Section: Amortization Schedule -->
+  <div class="result" id="resultSection" style="display:none;">
+    <h2>Amortization Schedule</h2>
+    <p id="summary"></p>
+    <table id="amortizationTable">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Total Principal</th>
+          <th>Total Interest</th>
+          <th>Ending Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Comparison Section: 15-Year and 30-Year Loans -->
+  <div class="comparison" id="comparisonSection" style="display:none;">
+    <h2>Comparison with 15-Year and 30-Year Loans</h2>
+    <table id="comparisonTable">
+      <thead>
+        <tr>
+          <th>Term (Years)</th>
+          <th>Monthly Payment</th>
+          <th>Total Payment</th>
+          <th>Total Interest</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Calculate the monthly payment using the standard formula.
+    function calculateMonthlyPayment(principal, annualRate, termYears) {
+      let monthlyRate = annualRate / 100 / 12;
+      let totalPayments = termYears * 12;
+      return principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+    }
+
+    // Generate a yearly amortization schedule.
+    function generateAmortizationSchedule(principal, annualRate, termYears) {
+      let monthlyRate = annualRate / 100 / 12;
+      let totalPayments = termYears * 12;
+      let monthlyPayment = calculateMonthlyPayment(principal, annualRate, termYears);
+      let schedule = [];
+      let currentBalance = principal;
+      
+      for (let year = 1; year <= termYears; year++) {
+        let yearPrincipal = 0;
+        let yearInterest = 0;
+        for (let month = 1; month <= 12; month++) {
+          let interestPayment = currentBalance * monthlyRate;
+          let principalPayment = monthlyPayment - interestPayment;
+          // Adjust for the final payment to avoid a tiny negative balance.
+          if (currentBalance < monthlyPayment) {
+            principalPayment = currentBalance;
+            monthlyPayment = principalPayment + interestPayment;
+          }
+          yearPrincipal += principalPayment;
+          yearInterest += interestPayment;
+          currentBalance -= principalPayment;
+          if (currentBalance < 0) {
+            currentBalance = 0;
+          }
+        }
+        schedule.push({
+          year: year,
+          principal: yearPrincipal,
+          interest: yearInterest,
+          balance: currentBalance
+        });
+      }
+      return schedule;
+    }
+
+    // Format number as currency.
+    function formatCurrency(amount) {
+      return "$" + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
+
+    // Handle form submission to calculate and display the amortization schedule and comparison.
+    document.getElementById('loanForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Read input values.
+      let principal = parseFloat(document.getElementById('loanAmount').value);
+      let termYears = parseFloat(document.getElementById('loanTerm').value);
+      let annualRate = parseFloat(document.getElementById('interestRate').value);
+
+      // Calculate monthly payment for the chosen term.
+      let monthlyPayment = calculateMonthlyPayment(principal, annualRate, termYears);
+      let totalPayment = monthlyPayment * termYears * 12;
+      let totalInterest = totalPayment - principal;
+      
+      // Display summary info.
+      let summaryText = "For a loan amount of " + formatCurrency(principal) + " at an annual interest rate of " +
+                          annualRate.toFixed(2) + "% over " + termYears + " years, your monthly payment is " +
+                          formatCurrency(monthlyPayment) + ". Total payment: " + formatCurrency(totalPayment) +
+                          ", Total interest: " + formatCurrency(totalInterest) + ".";
+      document.getElementById('summary').textContent = summaryText;
+      
+      // Generate and display the amortization schedule (yearly breakdown).
+      let schedule = generateAmortizationSchedule(principal, annualRate, termYears);
+      let amortizationTbody = document.getElementById('amortizationTable').getElementsByTagName('tbody')[0];
+      amortizationTbody.innerHTML = "";
+      schedule.forEach(function(entry) {
+        let row = document.createElement('tr');
+        row.innerHTML = "<td>" + entry.year + "</td>" +
+                        "<td>" + formatCurrency(entry.principal) + "</td>" +
+                        "<td>" + formatCurrency(entry.interest) + "</td>" +
+                        "<td>" + formatCurrency(entry.balance) + "</td>";
+        amortizationTbody.appendChild(row);
+      });
+      document.getElementById('resultSection').style.display = 'block';
+
+      // Calculate and display comparisons for 15-year and 30-year loans.
+      let comparisonTerms = [15, 30];
+      let comparisonTbody = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
+      comparisonTbody.innerHTML = "";
+      comparisonTerms.forEach(function(term) {
+        let compMonthlyPayment = calculateMonthlyPayment(principal, annualRate, term);
+        let compTotalPayment = compMonthlyPayment * term * 12;
+        let compTotalInterest = compTotalPayment - principal;
+        let row = document.createElement('tr');
+        row.innerHTML = "<td>" + term + " years</td>" +
+                        "<td>" + formatCurrency(compMonthlyPayment) + "</td>" +
+                        "<td>" + formatCurrency(compTotalPayment) + "</td>" +
+                        "<td>" + formatCurrency(compTotalInterest) + "</td>";
+        comparisonTbody.appendChild(row);
+      });
+      document.getElementById('comparisonSection').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
